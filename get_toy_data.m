@@ -8,7 +8,7 @@ Img = cell(params.n_imgs, 1);
 
 for i=1:params.n_imgs
     Img{i} = struct();
-    Img{i}.codes = rand(params.n_region_per_img, params.cnn_dim);
+    Img{i}.codes = rand(params.n_region_per_img, params.cnn_dim + 1);
 end
 
 %% Create toy random word2vec

@@ -45,8 +45,42 @@ for q=1:params.batch_size
 end
 sent_batch = Sent(batch_sentence_indices);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Compute the cost for a random set of weights
-N = length(sent_batch);  % number of sentences in the batch. Also corresponds to number of images in the batch.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% forward prop all image fragments and arrange them into a single large matrix
+N = length(sent_batch);  % number of sentences in the batch. Also corresponds to number of images in the batch and size of batch 
+img_cnn_codes = cell(1, N);
+imgVecICell = cell(1, N);
+for i=1:N        
+    img_cnn_codes{i} = img_batch{i}.codes;  % extract only the CNN codes of img_batch
+end
+region_img_cnn_codes = cat(1, img_cnn_codes{:}); % <total n_regions in batch, cnn_dim + 1>
 
+% write region to img_id
+for i=1:N    
+    imgVecICell{i} = ones(size(img_cnn_codes{i},1), 1)*i;  % <1, batch_size>
+    % imgVecICell {[1;1;1;1],[2;2;2;2],[3;3;3;3],[4;4;4;4]}
+end
+region2img_id = cat(1, imgVecICell{:});
+
+% Project all regions in batch to multimodal space
+projected_regions = Wi2s * region_img_cnn_codes';  % <h, number regions in batch>
+n_regions_in_batch = size(projected_regions, 2);
+
+%% forward prop all sentences and arrange them
+sentVecsCell = cell(1, N);  % <1, number of sentences in batch>
+sentVecICell = cell(1, N);
+for i = 1:N
+    [z] = ForwardSent(sent_batch{i},params,oWe,Wsem);
+    sentVecsCell{i} = z;
+    sentVecICell{i} = ones(size(z,2), 1)*i;
+end
+sentVecI = cat(1, sentVecICell{:});
+allSentVecs = cat(2, sentVecsCell{:});
+Ns = size(allSentVecs, 2);
+
+% compute fragment scores
+dots = projected_regions' * allSentVecs;  %TODO tomorrow figure this out: <n_regions, ??? number words or sentences???>
 
 
