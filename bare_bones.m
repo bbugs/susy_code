@@ -62,7 +62,7 @@ for i=1:N
     imgVecICell{i} = ones(size(img_cnn_codes{i},1), 1)*i;  % <1, batch_size>
     % imgVecICell {[1;1;1;1],[2;2;2;2],[3;3;3;3],[4;4;4;4]}
 end
-region2img_id = cat(1, imgVecICell{:});
+region2pair_id = cat(1, imgVecICell{:}); %row number is region id and value is pair id (e.g., from 1 to 20)
 
 % Project all regions in batch to multimodal space
 projected_regions = Wi2s * region_img_cnn_codes';  % <h, number regions in batch>
@@ -70,17 +70,21 @@ n_regions_in_batch = size(projected_regions, 2);
 
 %% forward prop all sentences and arrange them
 sentVecsCell = cell(1, N);  % <1, number of sentences in batch>
-sentVecICell = cell(1, N);
+sentVecICell = cell(1, N);  % cell of size num_sentences_in_batch.  Each cell (sentence) has a matrix of the size of the number of words in the sentence and the value of the local (within the batch) image id
+% [1,1,1] ,  [2,2,..,2], [3,3,3,3], [4,4,4] ... [20,20] for 20 images in the batch.
 for i = 1:N
-    [z] = ForwardSent(sent_batch{i},params,oWe,Wsem);
+    z = ForwardSent(sent_batch{i},params,oWe,Wsem);  % size(z) = <h, n_words in sentence>
     sentVecsCell{i} = z;
     sentVecICell{i} = ones(size(z,2), 1)*i;
 end
-sentVecI = cat(1, sentVecICell{:});
-allSentVecs = cat(2, sentVecsCell{:});
-Ns = size(allSentVecs, 2);
+word2pair_id = cat(1, sentVecICell{:}); % size = <n_words_in_batch, 1>. 1 1 1 2 2 2 2 ... 20 20 20
+projected_words = cat(2, sentVecsCell{:});  % <h, number of words in sentences in batch>. Note that 
+% the same word might occur in multiple sentences, but here they are kept
+% separately, but the vector is the same. Each column is one word. Two
+% columns can be the same if they correspond to the same word. 
+n_words_in_batch = size(projected_words, 2);  % all words in batch, not just unique words
 
 % compute fragment scores
-dots = projected_regions' * allSentVecs;  %TODO tomorrow figure this out: <n_regions, ??? number words or sentences???>
+sim_region_word = projected_regions' * projected_words;  %size(dots) = <n_regions in batch, number of words in all sentences in batch>
 
 

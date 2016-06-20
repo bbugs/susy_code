@@ -1,20 +1,23 @@
-function [Z] = ForwardSent(sentence_batch,params,oWe,Wsem)
+function [Z] = ForwardSent(sentence,params,oWe,Wsem)
+% input one sentence at a time
 
-N = length(sentence_batch.word_index); %sus: number of words
+N = length(sentence.word_index); %sus: number of words in sentence
 Z = zeros(params.h, N); %sus: hxN. h is the size of the semantic space
-triples = zeros(3, N);
 n=1;
 
 for i=1:N  %sus: iterate over each word in the sentence
 
-    ix1 = sentence_batch.word_index(i);  %sus: id word
+    ix1 = sentence.word_index(i);  %sus: id word
     if ix1==-1, continue; end
 
     w1 = oWe(:,ix1);  %sus: get vector of word
-
+    
     vcat = [w1; 1]; % cat sus: concatenate weights of w1 and 1 for bias
+    % vcat <word2vec_dim + 1>
+    % Wsem <h, word2vec_dim + 1>
     vlin = Wsem * vcat; % mul sus: multiply
-    v = params.f(vlin); % nonlin sus: apply nonlinearity
+    % 
+    v = params.f(vlin); % nonlin sus: apply nonlinearity. negative elements become zero if relu is used for non linearity function
     Z(:,n) = v;
 
     n=n+1;
